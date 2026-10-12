@@ -13,7 +13,7 @@ Sem uma conexão Supabase configurada, o app pode ser usado em **modo local**. N
 
 ## Publicar no GitHub Pages
 
-O workflow [deploy-pages.yml](./.github/workflows/deploy-pages.yml) compila e publica automaticamente o app no GitHub Pages a cada envio para `main`. No repositório, abra **Settings → Secrets and variables → Actions → New repository secret** e crie o secret `VITE_YOUTUBE_API_KEY` com uma chave nova e restrita à YouTube Data API v3 e ao domínio do site. Depois, em **Settings → Pages**, selecione **GitHub Actions** como origem da publicação. O endereço esperado é `https://oli-sistema-projetos.github.io/IGREJA/`.
+O workflow [deploy-pages.yml](./.github/workflows/deploy-pages.yml) compila e publica automaticamente o app no GitHub Pages a cada envio para `main`. Antes do primeiro deploy, abra **Settings → Pages** e selecione **GitHub Actions** como origem da publicação. Para habilitar a busca de playback, abra **Settings → Secrets and variables → Actions → New repository secret** e crie o secret `VITE_YOUTUBE_API_KEY` com uma chave nova e restrita à YouTube Data API v3 e ao domínio do site. O endereço esperado é `https://oli-sistema-projetos.github.io/IGREJA/`.
 
 O valor fornecido anteriormente deve ser revogado no Google Cloud e substituído por uma chave nova antes de cadastrá-la. Mesmo armazenada como secret para o processo de build, uma chave `VITE_*` será incluída no JavaScript entregue ao navegador; restrinja-a por HTTP referrer e API. Não a coloque no código-fonte ou em arquivos commitados.
 
