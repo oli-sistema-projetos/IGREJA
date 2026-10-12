@@ -1,10 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
-const allowedOrigins = new Set([
+const defaultAllowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "https://oli-sistema-projetos.github.io",
-])
+]
 
 const responseHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -15,6 +15,13 @@ const responseHeaders = {
 
 Deno.serve(async (request: Request) => {
   const origin = request.headers.get("Origin") ?? ""
+  const allowedOrigins = new Set([
+    ...defaultAllowedOrigins,
+    ...(Deno.env.get("APP_ALLOWED_ORIGINS") ?? "")
+      .split(",")
+      .map((allowedOrigin) => allowedOrigin.trim().replace(/\/$/, ""))
+      .filter(Boolean),
+  ])
   const corsHeaders = {
     ...responseHeaders,
     ...(allowedOrigins.has(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
