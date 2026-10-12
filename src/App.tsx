@@ -438,7 +438,7 @@ function App() {
             </section>
           ) : (
             <>
-              {role === 'recepcao' && <ReceptionPage entries={entries} onSubmit={addReceptionEntry} />}
+              {role === 'recepcao' && <ReceptionPage entries={entries} onSubmit={addReceptionEntry} client={client} />}
               {role === 'altar' && <AltarPage items={orderedItems} onToggle={(item) => void toggleItem(item)} />}
               {role === 'som' && <SoundPage items={orderedItems} />}
             </>
@@ -462,19 +462,17 @@ type YouTubeSearchResult = {
   }
 }
 
-function ReceptionPage({ entries, onSubmit }: { entries: ReceptionEntry[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+function ReceptionPage({ entries, onSubmit, client }: { entries: ReceptionEntry[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void; client: SupabaseClient | null }) {
   const [category, setCategory] = useState<Category>('Louvor')
   const [accompaniment, setAccompaniment] = useState<'band' | 'youtube'>('band')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([])
   const [selectedTrack, setSelectedTrack] = useState<YouTubeSearchResult | null>(null)
   const [searching, setSearching] = useState(false)
-  const youtubeApiKey = import.meta.env.VITE_YOUTUBE_API_KEY
-
   async function searchYouTube() {
     const query = searchQuery.trim()
-    if (!youtubeApiKey) {
-      toast.error('Configure a chave restrita da YouTube Data API em VITE_YOUTUBE_API_KEY.')
+    if (!client) {
+      toast.error('Conecte o Supabase para pesquisar playbacks.')
       return
     }
     if (!query) {
@@ -484,23 +482,15 @@ function ReceptionPage({ entries, onSubmit }: { entries: ReceptionEntry[]; onSub
 
     setSearching(true)
     try {
-      const params = new URLSearchParams({
-        part: 'snippet',
-        type: 'video',
-        videoEmbeddable: 'true',
-        maxResults: '6',
-        q: `${query} playback`,
-        key: youtubeApiKey,
-      })
-      const response = await fetch(`https://www.googleapis.com/youtube/v3/search?${params}`)
-      const data = await response.json() as {
-        items?: YouTubeSearchResult[]
-        error?: { message?: string }
-      }
-      if (!response.ok) throw new Error(data.error?.message ?? `Erro HTTP ${response.status}`)
-      setSearchResults(data.items ?? [])
+      const { data, error } = await client.functions.invoke<{ items: YouTubeSearchResult[] }>(
+        'search-youtube',
+        { body: { query } },
+      )
+      if (error) throw error
+      if (!data) throw new Error('A busca não retornou resultados válidos.')
+      setSearchResults(data.items)
       setSelectedTrack(null)
-      if (!data.items?.length) toast.info('Nenhum playback encontrado. Tente outro termo.')
+      if (!data.items.length) toast.info('Nenhum playback encontrado. Tente outro termo.')
     } catch (error) {
       console.error('Falha ao pesquisar playbacks no YouTube.', error)
       toast.error(`Não foi possível pesquisar no YouTube: ${error instanceof Error ? error.message : 'erro desconhecido'}`)
@@ -567,7 +557,7 @@ function ReceptionPage({ entries, onSubmit }: { entries: ReceptionEntry[]; onSub
                   {searching ? 'Buscando...' : 'Buscar'}
                 </button>
               </div>
-              {!youtubeApiKey && <small className="youtube-search-help">Configure VITE_YOUTUBE_API_KEY para habilitar a busca.</small>}
+              {!client && <small className="youtube-search-help">Conecte o Supabase para habilitar a busca.</small>}
               {searchResults.length > 0 && <ul className="youtube-results" aria-label="Resultados de playback">
                 {searchResults.map((result) => (
                   <li key={result.id.videoId}>
